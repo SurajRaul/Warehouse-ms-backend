@@ -1,23 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import { InventoryService } from '../inventory/inventory.service';
-import { OrdersService } from '../orders/orders.service';
-import { UsersService } from '../users/users.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { RabbitmqService } from 'src/shared/rabbitmq/rabbitmq.service';
 
 @Injectable()
 export class CronService {
-  constructor(
-    private inventoryService: InventoryService,
-    private orderService: OrdersService,
-    private userService: UsersService,
-  ) {}
+  constructor(private rabbitmqService: RabbitmqService) {}
 
-  @Cron(CronExpression.EVERY_HOUR)
+  // @Cron(CronExpression.EVERY_MINUTE)
   async checkLowStockItems() {
     try {
-      const lowStockItems = this.inventoryService.findLowStockItems();
-      if (lowStockItems.length > 0) {
-      }
-    } catch (err) {}
+      console.log('Cron job running every minute');
+    } catch (err) {
+      console.error('Error in cron job:', err);
+    }
   }
 }

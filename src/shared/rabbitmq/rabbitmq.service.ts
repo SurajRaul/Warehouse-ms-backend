@@ -13,14 +13,19 @@ export class RabbitmqService implements OnModuleInit, OnModuleDestroy {
   private connection: amqp.connection;
   private channel: amqp.channel;
   constructor(private configService: ConfigService) {}
-  async onModuleInit() {}
-  async onModuleDestroy() {}
+  async onModuleInit() {
+    await this.connect();
+  }
+  async onModuleDestroy() {
+    await this.disconnect();
+  }
 
   private async connect() {
     try {
       const url = this.configService.get<string>('RABBITMQ_URL');
       this.connection = await amqp.connect(url);
       this.channel = await this.connection.createChannel();
+      console.log('✅ RabbitMQ connected successfully to', url);
     } catch (err) {
       throw err;
     }
@@ -65,13 +70,28 @@ export class RabbitmqService implements OnModuleInit, OnModuleDestroy {
             const messagePayload: MessagePayload = JSON.parse(
               msg.content.toString(),
             );
-          } catch (error) {}
+            await handler(messagePayload);
+            this.channel.ack(msg);
+          } catch (error) {
+            this.channel.nack(msg, false, false);
+          }
         }
       });
-    } catch (error) {}
+    } catch (error) {
+      throw error;
+    }
   }
 
-  async publishInventoryUpdate() {}
+  async publishInventoryUpdate(data: any): Promise<void> {
+    const message: MessagePayload = {
+      id: `inventory-${Date.now()}`,
+      type: 'INVENTORY UPDATE',
+      data,
+      timestamp: new Date(),
+    };
+
+    await this.publishMessage('inventory_queue', message);
+  }
   async publishOrderUpdate() {}
   async publishPaymentUpdate() {}
   async publishShipmentUpdate() {}
